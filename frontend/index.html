@@ -77,7 +77,7 @@
             </div>
         </div>
         <script>
-            const socket = io("http://localhost:8000");
+            const socket = io("https://study-group-finder-rcmi.onrender.com/");
             socket.on('connect', () => {
                 console.log("Connected:", socket.id);
             });
@@ -104,7 +104,7 @@
                 const description = document.getElementById('description').value;
 
                 try {
-                    const res = await fetch('http://localhost:8000/create', {
+                    const res = await fetch('https://study-group-finder-rcmi.onrender.com/create', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -125,7 +125,7 @@
             }
 
             async function getGroups() {
-                const res = await fetch('http://localhost:8000/groups');
+                const res = await fetch('https://study-group-finder-rcmi.onrender.com/groups');
                 const data = await res.json();
 
                 const list = document.getElementById('groupList');
@@ -168,7 +168,7 @@
 
             async function joinGroup(groupId) {
                 try {
-                    const res = await fetch('http://localhost:8000/join-group', {
+                    const res = await fetch('https://study-group-finder-rcmi.onrender.com/join-group', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -191,7 +191,7 @@
                 if (!confirm('Delete this study group?')) return;
 
                 try {
-                    const res = await fetch(`http://localhost:8000/delete-group/${groupId}`, {
+                    const res = await fetch(`https://study-group-finder-rcmi.onrender.com/delete-group/${groupId}`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json'
@@ -240,7 +240,7 @@
                 const description = document.getElementById('editDescription').value;
 
                 try {
-                    const res = await fetch(`http://localhost:8000/edit-group/${editingGroupId}`, {
+                    const res = await fetch(`https://study-group-finder-rcmi.onrender.com/edit-group/${editingGroupId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json'
@@ -277,7 +277,7 @@
             async function joinChat(groupId, groupTitle) {
                 try {
                     // Fetch group details to check membership
-                    const groupRes = await fetch(`http://localhost:8000/groups`);
+                    const groupRes = await fetch(`https://study-group-finder-rcmi.onrender.com/groups`);
                     const groups = await groupRes.json();
                     const group = groups.find(g => g._id === groupId);
 
@@ -304,7 +304,7 @@
                     document.getElementById('chatTitle').innerText = "Chat: " + groupTitle;
 
                     // Load old messages
-                    const res = await fetch(`http://localhost:8000/messages/${groupId}`);
+                    const res = await fetch(`https://study-group-finder-rcmi.onrender.com/messages/${groupId}`);
                     const messages = await res.json();
 
                     const messageList = document.getElementById('messages');
@@ -360,7 +360,7 @@
                     try {
                         const userEmail = localStorage.getItem('userEmail');
 
-                        const res = await fetch('http://localhost:8000/leave-group', {
+                        const res = await fetch('https://study-group-finder-rcmi.onrender.com/leave-group', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json'
