@@ -28,7 +28,7 @@
             </form>
             <div id="message" class="message"></div>
             <div class="footer">
-                <p>Don't have an account? <a href="../Signup.html">Sign up</a></p>
+                <p>Don't have an account? <a href="Signup.html">Sign up</a></p>
             </div>
         </div>
     </div>
@@ -40,7 +40,7 @@
             const password = document.getElementById('password').value;
 
             try {
-                const res = await fetch('https://study-group-finder-rcmi.onrender.com/login', {
+                const res = await fetch('https://study-group-finder-rcmi.onrender.com/api/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

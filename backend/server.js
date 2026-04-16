@@ -31,7 +31,7 @@ mongoose
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
 //Register Route----------------------------------------
-app.post("/register", async (req, res) => {
+app.post("/api/register", async (req, res) => {
   try {
     const { name, email, password } = req.body;
     if (!name || !email || !password) {
@@ -47,7 +47,7 @@ app.post("/register", async (req, res) => {
 });
 
 //Login Route----------------------------------------
-app.post("/login", async (req, res) => {
+app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {
