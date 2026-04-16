@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Study Group Finder</title>
-    <link rel="stylesheet" href="frontend/index.css">
+    <link rel="stylesheet" href="index.css">
+    <a href="login.html">
 </head>
 
 <body>
@@ -32,7 +33,7 @@
             </form>
             <div id="message" class="message"></div>
             <div class="footer">
-                <p>Already have an account? <a href="frontend/login.html">Sign in</a></p>
+                <p>Already have an account? <a href="login.html">Sign in</a></p>
             </div>
         </div>
     </div>
@@ -45,7 +46,7 @@
             const password = document.getElementById('password').value;
 
             try {
-                const res = await fetch('https://study-group-finder-rcmi.onrender.com//register', {
+                const res = await fetch('https://study-group-finder-rcmi.onrender.com/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'

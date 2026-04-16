@@ -6,6 +6,7 @@ const Message = require("./model/Message");
 const http = require("http");
 const { Server } = require("socket.io");
 
+const app = express();
 const cors = require("cors");
 
 app.use(
@@ -16,7 +17,7 @@ app.use(
   }),
 );
 
-const app = express();
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
