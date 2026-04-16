@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Study Group Finder</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-section">
+                <h1>Welcome Back</h1>
+                <p>Sign in to your account</p>
+            </div>
+            <form id="loginForm" onsubmit="login(event)">
+                <div class="input-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="Enter your email">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="Enter your password">
+                </div>
+                <button type="submit" class="login-btn">Sign In</button>
+            </form>
+            <div id="message" class="message"></div>
+            <div class="footer">
+                <p>Don't have an account? <a href="../Signup.html">Sign up</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function login(event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('http://localhost:8000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    const normalizedEmail = email.trim().toLowerCase();
+                    localStorage.setItem('userEmail', normalizedEmail);
+                    localStorage.setItem('userName', data.user?.name || email);
+                    // Redirect to main page
+                    window.location.href = "index.html";
+                } else {
+                    document.getElementById('message').innerText = data.error || data.message;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('message').innerText = 'Network error. Please try again.';
+            }
+        }
+
+        // Check if user is already logged in
+        document.addEventListener('DOMContentLoaded', function () {
+            const userEmail = localStorage.getItem('userEmail');
+            if (userEmail) {
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</body>
+
+</html>

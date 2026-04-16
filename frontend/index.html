@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Groups - Dashboard</title>
+    <link rel="stylesheet" href="index.css">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <header class="header">
+            <h1>Study Group Finder</h1>
+            <p>Welcome, <span id="userEmail"></span></p>
+            <button onclick="logout()" class="logout-btn">Logout</button>
+        </header>
+
+        <div class="create-section">
+            <h2>Create New Study Group</h2>
+            <form id="createForm" onsubmit="createGroup(event)">
+                <div class="input-group">
+                    <label for="title">Group Title</label>
+                    <input type="text" id="title" required placeholder="Enter group title">
+                </div>
+                <div class="input-group">
+                    <label for="subject">Subject</label>
+                    <input type="text" id="subject" required placeholder="Enter subject">
+                </div>
+                <div class="input-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" placeholder="Enter description"></textarea>
+                </div>
+                <button type="submit" class="create-btn">Create Group</button>
+            </form>
+        </div>
+        <div class="groups-section">
+            <h2>Available Study Groups</h2>
+            <button onclick="getGroups()" class="load-btn">Load Groups</button>
+            <ul id="groupList" class="group-list"></ul>
+        </div>
+        <h2 id="chatTitle" style="display:none;">Select a group to chat</h2>
+
+        <div id="chatBox" class="chat-section" style="display:none;">
+            <div class="chat-input-area">
+                <input type="text" id="messageInput" class="message-input" placeholder="Type message">
+                <button onclick="sendMessage()" class="send-btn">Send</button>
+                <button onclick="leaveGroup()" class="leave-btn">Leave Group</button>
+            </div>
+
+            <ul id="messages" class="messages"></ul>
+        </div>
+
+        <!-- Edit Group Modal -->
+        <div id="editModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Edit Group</h2>
+                    <span class="close" onclick="closeEditModal()">&times;</span>
+                </div>
+                <form id="editForm" onsubmit="submitEditGroup(event)">
+                    <div class="input-group">
+                        <label for="editTitle">Group Title</label>
+                        <input type="text" id="editTitle" required placeholder="Enter new title">
+                    </div>
+                    <div class="input-group">
+                        <label for="editDescription">Description</label>
+                        <textarea id="editDescription" placeholder="Enter new description"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                        <button type="submit" class="modal-btn save">Save Changes</button>
+                        <button type="button" class="modal-btn cancel" onclick="closeEditModal()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <script>
+            const socket = io("http://localhost:8000");
+            socket.on('connect', () => {
+                console.log("Connected:", socket.id);
+            });
+            const userEmail = localStorage.getItem('userEmail');
+            const userName = localStorage.getItem('userName');
+            const normalizedEmail = userEmail?.trim().toLowerCase();
+            if (!userEmail) {
+                window.location.href = "login.html";
+            } else {
+                document.getElementById('userEmail').innerText = userName || userEmail;
+            }
+
+            document.getElementById('messageInput').addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            async function createGroup(event) {
+                event.preventDefault();
+                const title = document.getElementById('title').value;
+                const subject = document.getElementById('subject').value;
+                const description = document.getElementById('description').value;
+
+                try {
+                    const res = await fetch('http://localhost:8000/create', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ title, subject, description, createdBy: userEmail })
+                    });
+
+                    const data = await res.json();
+                    alert(data.message);
+                    if (res.ok) {
+                        document.getElementById('createForm').reset();
+                        getGroups(); // Refresh list
+                    }
+                } catch (error) {
+                    console.error('Create group error:', error);
+                    alert('Error creating group');
+                }
+            }
+
+            async function getGroups() {
+                const res = await fetch('http://localhost:8000/groups');
+                const data = await res.json();
+
+                const list = document.getElementById('groupList');
+                list.innerHTML = '';
+
+                data.forEach((group) => {
+                    const li = document.createElement('li');
+                    li.classList.add('group-item');
+                    const isMember = Array.isArray(group.members) && group.members.some(member => member?.toLowerCase() === normalizedEmail);
+                    const joinButton = isMember
+                        ? `<button disabled class="join-btn joined">Joined</button>`
+                        : `<button onclick="joinGroup('${group._id}')" class="join-btn">Join</button>`;
+
+                    li.innerHTML = `
+      <div class="group-info">
+        <div class="group-header">
+          <h3>${group.title}</h3>
+          <span class="group-subject">${group.subject}</span>
+        </div>
+        ${group.description ? `<p class="group-desc">${group.description}</p>` : ''}
+        <div class="group-meta">
+          <span class="created-by">Created by ${group.createdBy}</span>
+        </div>
+        <div class="group-actions">
+          ${joinButton}
+          <button onclick="joinChat('${group._id}', '${group.title}')" class="chat-btn">Chat</button>
+          ${group.createdBy?.toLowerCase() === normalizedEmail
+                            ? `<button onclick="openEditModal('${group._id}', '${group.title}', '${(group.description || '').replace(/'/g, "\\'")}');" class="edit-btn">Edit</button>
+                             <button onclick="deleteGroup('${group._id}')" class="delete-btn">Delete</button>`
+                            : ''
+                        }
+        </div>
+      </div>
+    `;
+
+                    list.appendChild(li);
+                });
+
+            }
+
+            async function joinGroup(groupId) {
+                try {
+                    const res = await fetch('http://localhost:8000/join-group', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ groupId, userEmail })
+                    });
+
+                    const data = await res.json();
+                    alert(data.message);
+                    if (res.ok) {
+                        getGroups(); // Refresh list
+                    }
+                } catch (error) {
+                    console.error('Join group error:', error);
+                    alert('Error joining group');
+                }
+            }
+
+            async function deleteGroup(groupId) {
+                if (!confirm('Delete this study group?')) return;
+
+                try {
+                    const res = await fetch(`http://localhost:8000/delete-group/${groupId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userEmail: localStorage.getItem('userEmail')
+                        })
+                    });
+
+                    const data = await res.json();
+                    alert(data.message || 'Group deleted');
+
+                    if (res.ok) {
+                        getGroups();
+                    }
+                } catch (error) {
+                    console.error('Delete group error:', error);
+                    alert('Error deleting group');
+                }
+            }
+
+            let editingGroupId = null;
+
+            function openEditModal(groupId, title, description) {
+                editingGroupId = groupId;
+                document.getElementById('editTitle').value = title;
+                document.getElementById('editDescription').value = description;
+                document.getElementById('editModal').style.display = 'block';
+            }
+
+            function closeEditModal() {
+                document.getElementById('editModal').style.display = 'none';
+                editingGroupId = null;
+                document.getElementById('editForm').reset();
+            }
+
+            async function submitEditGroup(event) {
+                event.preventDefault();
+
+                if (!editingGroupId) {
+                    alert('Error: Group ID missing');
+                    return;
+                }
+
+                const title = document.getElementById('editTitle').value;
+                const description = document.getElementById('editDescription').value;
+
+                try {
+                    const res = await fetch(`http://localhost:8000/edit-group/${editingGroupId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userEmail: localStorage.getItem('userEmail'),
+                            title,
+                            description
+                        })
+                    });
+
+                    const data = await res.json();
+                    alert(data.message || 'Group updated');
+
+                    if (res.ok) {
+                        closeEditModal();
+                        getGroups();
+                    }
+                } catch (error) {
+                    console.error('Edit group error:', error);
+                    alert('Error updating group');
+                }
+            }
+
+            window.onclick = function (event) {
+                const modal = document.getElementById('editModal');
+                if (event.target === modal) {
+                    closeEditModal();
+                }
+            }
+
+            let currentGroupId = null;
+
+            async function joinChat(groupId, groupTitle) {
+                try {
+                    // Fetch group details to check membership
+                    const groupRes = await fetch(`http://localhost:8000/groups`);
+                    const groups = await groupRes.json();
+                    const group = groups.find(g => g._id === groupId);
+
+                    if (!group) {
+                        alert('Group not found');
+                        return;
+                    }
+
+                    // Check if user is a member
+                    const isMember = Array.isArray(group.members) && group.members.some(member => member?.toLowerCase() === normalizedEmail);
+
+                    if (!isMember) {
+                        alert('You must join this group before chatting');
+                        return;
+                    }
+
+                    currentGroupId = groupId;
+
+                    socket.emit('joinGroup', groupId);
+
+                    // Show chat UI
+                    document.getElementById('chatBox').style.display = 'block';
+                    document.getElementById('chatTitle').style.display = 'block';
+                    document.getElementById('chatTitle').innerText = "Chat: " + groupTitle;
+
+                    // Load old messages
+                    const res = await fetch(`http://localhost:8000/messages/${groupId}`);
+                    const messages = await res.json();
+
+                    const messageList = document.getElementById('messages');
+                    messageList.innerHTML = '';
+
+                    messages.forEach(msg => {
+                        const sender = msg.user?.trim().toLowerCase() === normalizedEmail ? userName || msg.user : msg.user;
+                        const li = document.createElement('li');
+                        li.textContent = sender + ": " + msg.message;
+                        messageList.appendChild(li);
+                    });
+                } catch (error) {
+                    console.error('Error accessing chat:', error);
+                    alert('Error accessing chat');
+                }
+            }
+
+            function sendMessage() {
+                if (!currentGroupId) {
+                    alert("Please click 'Open Chat' first");
+                    return;
+                }
+
+                const message = document.getElementById('messageInput').value;
+
+                socket.emit('sendMessage', {
+                    groupId: currentGroupId,
+                    message: message,
+                    user: userName || userEmail,
+                    userEmail: userEmail
+                });
+
+                document.getElementById('messageInput').value = '';
+            }
+
+            socket.on('receiveMessage', (data) => {
+                console.log("Message received:", data); // 👈 ADD THIS
+                const sender = data.user?.trim().toLowerCase() === normalizedEmail ? userName || data.user : data.user;
+                const li = document.createElement('li');
+                li.classList.add('message-item');
+                li.textContent = sender + ": " + data.message;
+                document.getElementById('messages').appendChild(li);
+            });
+
+            async function leaveGroup() {
+                    if (!currentGroupId) {
+                        alert('No group selected');
+                        return;
+                    }
+
+                    if (!confirm('Are you sure you want to leave this group?')) return;
+
+                    try {
+                        const userEmail = localStorage.getItem('userEmail');
+
+                        const res = await fetch('http://localhost:8000/leave-group', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                groupId: currentGroupId,
+                                userEmail: userEmail
+                            })
+                        });
+
+                        let data;
+
+                        try {
+                            data = await res.json(); // ✅ safe parsing
+                        } catch (err) {
+                            const text = await res.text();
+                            console.error("Not JSON response:", text);
+                            alert("Server returned invalid response");
+                            return;
+                        }
+
+                        if (res.ok) {
+                            alert(data.message || 'Left group successfully');
+
+                            document.getElementById('chatBox').style.display = 'none';
+                            document.getElementById('chatTitle').style.display = 'none';
+                            document.getElementById('messages').innerHTML = '';
+                            currentGroupId = null;
+
+                            getGroups();
+                        } else {
+                            alert(data.message || 'Failed to leave group');
+                        }
+
+                    } catch (error) {
+                        console.error('Leave group error:', error);
+                        alert('Error: ' + error.message);
+                    }
+                }            
+                function logout() {
+                localStorage.removeItem('userEmail');
+                localStorage.removeItem('userName');
+                window.location.href = "login.html";
+            }
+
+
+        </script>
+</body>
+
+</html>

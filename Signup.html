@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Study Group Finder</title>
+    <link rel="stylesheet" href="frontend/index.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="logo-section">
+                <h1>Join Study Group Finder</h1>
+                <p>Create your account</p>
+            </div>
+            <form id="signupForm" onsubmit="signup(event)">
+                <div class="input-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" required placeholder="Enter your full name">
+                </div>
+                <div class="input-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="Enter your email">
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" required placeholder="Create a password">
+                </div>
+                <button type="submit" class="login-btn">Sign Up</button>
+            </form>
+            <div id="message" class="message"></div>
+            <div class="footer">
+                <p>Already have an account? <a href="frontend/login.html">Sign in</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function signup(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('http://localhost:8000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('Account created successfully! Please log in.');
+                    window.location.href = "frontend/login.html";
+                } else {
+                    document.getElementById('message').innerText = data.error || data.message;
+                }
+            } catch (error) {
+                console.error('Signup error:', error);
+                document.getElementById('message').innerText = 'Network error. Please try again.';
+            }
+        }
+    </script>
+</body>
+
+</html>
