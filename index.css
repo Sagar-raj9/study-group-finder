@@ -3,6 +3,8 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  text-decoration: none;
+  cursor: default;
 }
 
 body {
@@ -714,4 +716,21 @@ input:focus {
   .message-input {
     width: calc(100% - 70px);
   }
+}
+
+a {
+  cursor: pointer;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button, .login-btn, .create-btn, .load-btn, .join-btn, .chat-btn, .edit-btn, .delete-btn, .send-btn, .leave-btn {
+  cursor: pointer;
+}
+
+input, textarea {
+  cursor: text;
 }
