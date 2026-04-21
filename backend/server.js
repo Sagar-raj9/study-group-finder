@@ -17,16 +17,13 @@ app.use(
   }),
 );
 
-
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
+require("dotenv").config();
 mongoose
-  .connect(
-    "mongodb+srv://sagarchakia123_db_user:KZepNP30izKST4oe@myfirstproject.fzrp3ay.mongodb.net/",
-  )
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
